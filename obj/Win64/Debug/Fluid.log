@@ -1,0 +1,24 @@
+﻿cl : command line  warning D9002: ignoring unknown option '-std=c++17'
+  main.cpp
+C:\Users\jdhyd\Documents\GitHub\GridFluid\main.cpp(97,11): warning C4305: 'initializing': truncation from 'double' to 'float'
+C:\Users\jdhyd\Documents\GitHub\GridFluid\main.cpp(100,41): warning C4244: '=': conversion from 'double' to '_Ty', possible loss of data
+          with
+          [
+              _Ty=float
+          ]
+C:\Users\jdhyd\Documents\GitHub\GridFluid\main.cpp(110,165): warning C4244: '=': conversion from 'double' to '_Ty', possible loss of data
+          with
+          [
+              _Ty=float
+          ]
+C:\Users\jdhyd\Documents\GitHub\GridFluid\main.cpp(118,91): warning C4244: '-=': conversion from 'double' to '_Ty', possible loss of data
+          with
+          [
+              _Ty=float
+          ]
+C:\Users\jdhyd\Documents\GitHub\GridFluid\main.cpp(119,91): warning C4244: '-=': conversion from 'double' to '_Ty', possible loss of data
+          with
+          [
+              _Ty=float
+          ]
+  Fluid.vcxproj -> C:\Users\jdhyd\Documents\GitHub\GridFluid\build\Debug\Fluid.exe

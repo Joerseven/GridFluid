@@ -1,5 +1,13 @@
 workspace "Fluid"
   configurations { "Debug", "Release" }
+  platforms { "Win64", "Mac"}
+
+  filter "system:Win64"
+    system "windows"
+    architecture "x86_64"
+
+  filter "system:Mac"
+    system "macosx"
 
 project "Fluid"
   kind "ConsoleApp"
@@ -9,7 +17,6 @@ project "Fluid"
   links { "raylib" }
   includedirs { "external/raylib/include", "src/" }
   buildoptions { "-std=c++17" }
-  linkoptions { "-rpath @executable_path/../../external/raylib/lib"}
 
   files { "**.h", "**.cpp" }
 
@@ -20,6 +27,13 @@ project "Fluid"
   filter "configurations:Release"
     defines { "NDEBUG" }
     optimize "On"
+
+  filter "system:windows"
+    linkoptions { "/NODEFAULTLIB:MSVCRT" }
+    links { "winmm" }
+
+  filter "system:macosx"
+    linkoptions { "-rpath @executable_path/../../external/raylib/lib"}
 
 
 
