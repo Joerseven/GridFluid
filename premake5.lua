@@ -1,3 +1,6 @@
+require "cmake"
+require "clion"
+
 workspace "Fluid"
   configurations { "Debug", "Release" }
   platforms { "Win64", "Mac"}
@@ -17,6 +20,7 @@ project "Fluid"
   links { "raylib" }
   includedirs { "external/raylib/include", "src/" }
   buildoptions { "-std=c++17" }
+  defines {"GRAPHICS=GRAPHICS_API_OPENGL_43"}
 
   files { "**.h", "**.cpp" }
 
@@ -26,7 +30,7 @@ project "Fluid"
 
   filter "configurations:Release"
     defines { "NDEBUG" }
-    optimize "On"
+    symbols "On"
 
   filter "system:windows"
     linkoptions { "/NODEFAULTLIB:MSVCRT" }

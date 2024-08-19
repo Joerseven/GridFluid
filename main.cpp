@@ -2,8 +2,10 @@
 #include "rlgl.h"
 #include "solver.h"
 #include "raymath.h"
+
 #include <algorithm>
 #include <array>
+#include <memory>
 
 constexpr int N = 100;
 constexpr int fl_array_size = (N + 2) * (N + 2);
@@ -11,7 +13,7 @@ constexpr int scale_factor = 8;
 
 typedef std::unique_ptr<std::array<float, fl_array_size>> float_array_ptr;
 
-constexpr int fl_index(int x, int y) {
+constexpr inline int fl_index(int x, int y) {
   return ((x) + (N + 2) * (y));
 }
 
@@ -23,15 +25,6 @@ Color floatToColor(float number) {
 std::ostream& operator<<(std::ostream& stream, const Color& color) {
   stream << (int)color.r << ", " << (int)color.g << ", " << (int)color.b << ", " << (int)color.a;
   return stream;
-}
-
-void add_liquid(int x, int y, float* density) {
-  for (int i=0; i<fl_array_size; i++) {
-    Vector2 position = { (float)(i % N), (float)(i / N) };
-    if (Vector2Distance(position, {(float)x,(float)y}) < 10) {
-      density[i] += 0.1f;
-    }
-  }
 }
 
 void add_source(const float_array_ptr& dest, const float_array_ptr& src, float dt) {
@@ -155,6 +148,10 @@ void add_liquid_point(const float_array_ptr& dest, int x, int y, int radius) {
   }
 }
 
+void add_force(const float_array_ptr& dest, int x, int y, int magnitude) {
+  (*dest)[fl_index(x, y)] += magnitude;
+}
+
 int main (int argc, char *argv[]) {
 
   float_array_ptr vely = std::make_unique<std::array<float, fl_array_size>>();
@@ -183,6 +180,13 @@ int main (int argc, char *argv[]) {
   };
 
 
+  SetTextureFilter(density_texture, TEXTURE_FILTER_BILINEAR);
+
+  std::cout << rlGetVersion() << std::endl;
+
+  Vector2 first_pressed = Vector2{};
+
+
   while (!WindowShouldClose()) {
 
     float dt = GetFrameTime();
@@ -191,8 +195,16 @@ int main (int argc, char *argv[]) {
       add_liquid_point(prev_density, 50, 50, 1);
     }
 
-    if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) {
-      add_liquid_point(prev_velx, 50, 50, 1);
+    if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) {
+      first_pressed = GetMousePosition();
+      std::cout << first_pressed.x << first_pressed.y << std::endl;
+    }
+
+    if (IsMouseButtonReleased(MOUSE_RIGHT_BUTTON)) {
+      Vector2 force = Vector2Scale(Vector2Subtract(first_pressed, GetMousePosition()), -20);
+      std::cout << force.x << force.y << std::endl;
+      add_force(prev_velx, first_pressed.x / scale_factor, first_pressed.y / scale_factor, force.x);
+      add_force(prev_vely, first_pressed.x / scale_factor, first_pressed.y / scale_factor, force.y);
     }
     
     velocity_step(velx, vely, prev_velx, prev_vely, 0, dt);
@@ -216,3 +228,5 @@ int main (int argc, char *argv[]) {
   CloseWindow();
   return 0;
 }
+
+

@@ -10,3 +10,5 @@ Makefile
 *.idb
 *.pdb
 *.d
+.idea
+/obj
