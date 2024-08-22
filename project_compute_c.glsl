@@ -19,6 +19,9 @@ layout(std430, binding = 4) buffer vel_prev_u_layout {
   float div[];
 };
 
+layout(location = 5) uniform float dt;
+layout(location = 6) uniform float diff;
+
 #define N 400
 #define IX(i,j) ((i)+(N+2)*(j))
 
@@ -41,11 +44,10 @@ void main() {
   vec4 value = vec4(0.0, 0.0, 0.0, 1.0);
 
   ivec2 texel_coord = ivec2(gl_GlobalInvocationID.xy);
+  texel_coord += ivec2(1);
   
   int arr_coord = IX(texel_coord.x, texel_coord.y);
   value.x = project(value, texel_coord);
-
-  imageStore(img_output, texel_coord, value);
 }
 
 

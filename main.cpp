@@ -31,8 +31,6 @@ std::ostream& operator<<(std::ostream& stream, const Color& color) {
 
 void add_source(const float_array_ptr& dest, const float_array_ptr& src, float dt) {
 
-  //dest = current
-  // src = previous
   for (int i = 0; i < fl_array_size; i++) {
     (*dest)[i] += dt * (*src)[i];
   }
@@ -151,7 +149,7 @@ void velocity_step(const float_array_ptr& u, const float_array_ptr& v, const flo
 void add_liquid_point(const float_array_ptr& dest, int x, int y, int radius) {
   for (int i = x - radius; i < x + radius; i++) {
     for (int j = y - radius; j < y + radius; j++) {
-      (*dest)[fl_index(i, j)] += 100.0f;
+      (*dest)[fl_index(i, j)] += 50.0f;
     }
   }
 }
@@ -166,6 +164,24 @@ unsigned int load_compute_shader(const char* filename) {
   unsigned int program = rlLoadComputeShaderProgram(shader);
   UnloadFileText(file);
   return program;
+}
+
+void run_compute_shader(unsigned int shader_id, unsigned int buffer1, unsigned int buffer2, unsigned int buffer3, unsigned int buffer4, float* float1, float* float2, int boundary, int iterations) {
+
+  rlEnableShader(shader_id);
+
+  rlBindShaderBuffer(buffer1, 1);
+  rlBindShaderBuffer(buffer2, 2);
+  rlBindShaderBuffer(buffer3, 3);
+  rlBindShaderBuffer(buffer4, 4);
+
+  rlSetUniform(5, float1, RL_SHADER_UNIFORM_FLOAT, 1);
+  rlSetUniform(6, float2, RL_SHADER_UNIFORM_FLOAT, 1);
+  
+  for (int i = 0; i < iterations; i++) {
+    rlComputeShaderDispatch(N, N, 1);
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+  }
 }
 
 int main (int argc, char *argv[]) {
@@ -206,9 +222,12 @@ int main (int argc, char *argv[]) {
     RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32
   };
 
+  Texture2D boundaries = LoadTexture("map.png");
+
   // Bind texture
 
   rlBindImageTexture(compute_texture.id, 0, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, true);
+  rlBindImageTexture(boundaries.id, 7, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8, true);
 
   // Create buffers
 
@@ -226,7 +245,8 @@ int main (int argc, char *argv[]) {
   // Load Diffuse Compute
 
 
-  rlUpdateShaderBuffer(fluid_density_previous, density->data(), fl_array_size * sizeof(float), 0);
+  rlUpdateShaderBuffer(fluid_density_previous, density->data(), fl_array_size * sizeof(float), 0
+  );
 
   unsigned int diffuse_compute_program = load_compute_shader("fluid_compute.glsl");
   unsigned int advect_compute_program = load_compute_shader("advection_compute.glsl");
@@ -249,7 +269,7 @@ int main (int argc, char *argv[]) {
 
 
     if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
-      add_liquid_point(prev_density, N/2, N/2, 2);
+      add_liquid_point(prev_density, N/2, N/2, 10);
     }
 
     if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) {
@@ -264,7 +284,7 @@ int main (int argc, char *argv[]) {
       add_force(prev_vely, first_pressed.x / scale_factor, first_pressed.y / scale_factor, force.y);
     }
 
-    float diff = 0.0001f;
+    float diff = 0.0008f;
     float visc = 0.0f;
     
     //velocity_step(velx, vely, prev_velx, prev_vely, 0, dt, diffuse_compute_program, fluid_sbo);
@@ -278,176 +298,149 @@ int main (int argc, char *argv[]) {
 
     // Add sources
 
-    rlEnableShader(add_compute_program);
-    rlSetUniform(3, &dt, RL_SHADER_UNIFORM_FLOAT, 1);
-    rlBindShaderBuffer(fluid_velocity_up, 1);
-    rlBindShaderBuffer(fluid_velocity_u, 2);
-    rlComputeShaderDispatch(N + 2, N + 2, 1);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    run_compute_shader(add_compute_program,
+      fluid_velocity_up,
+      fluid_velocity_u,
+      0,
+      0,
+      &dt,
+      nullptr, 0, 1);
 
-    rlEnableShader(add_compute_program);
-    rlSetUniform(3, &dt, RL_SHADER_UNIFORM_FLOAT, 1);
-    rlBindShaderBuffer(fluid_velocity_vp, 1);
-    rlBindShaderBuffer(fluid_velocity_v, 2);
-    rlComputeShaderDispatch(N + 2, N + 2, 1);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    run_compute_shader(add_compute_program,
+      fluid_velocity_vp,
+      fluid_velocity_v,
+      0,
+      0,
+      &dt,
+      nullptr, 0, 1);
 
     // Diffuse
 
-    rlEnableShader(diffuse_compute_program);
-    rlSetUniform(3, &dt, RL_SHADER_UNIFORM_FLOAT, 1);
-    rlSetUniform(4, &visc, RL_SHADER_UNIFORM_FLOAT, 1);
-    rlBindShaderBuffer(fluid_velocity_u, 1);
-    rlBindShaderBuffer(fluid_velocity_up, 2);
+    run_compute_shader(diffuse_compute_program,
+      fluid_velocity_u,
+      fluid_velocity_up,
+      0,
+      0,
+      &dt,
+      &visc, 1, 20);
 
-    for (int i = 0; i < 20; i++) {
-      rlComputeShaderDispatch(N + 2, N + 2, 1);
-      glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-    }
-
-    rlEnableShader(diffuse_compute_program);
-    rlSetUniform(3, &dt, RL_SHADER_UNIFORM_FLOAT, 1);
-    rlSetUniform(4, &visc, RL_SHADER_UNIFORM_FLOAT, 1);
-    rlBindShaderBuffer(fluid_velocity_v, 1);
-    rlBindShaderBuffer(fluid_velocity_vp, 2);
-
-    for (int i = 0; i < 20; i++) {
-      rlComputeShaderDispatch(N + 2, N + 2, 1);
-      glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-    }
+    run_compute_shader(diffuse_compute_program,
+      fluid_velocity_v,
+      fluid_velocity_vp,
+      0,
+      0,
+      &dt,
+      &visc, 2, 20);
 
     // Project
 
-    rlEnableShader(project_compute_program_a);
-    rlBindShaderBuffer(fluid_velocity_up, 1);
-    rlBindShaderBuffer(fluid_velocity_vp, 2);
-    rlBindShaderBuffer(fluid_velocity_u, 3);
-    rlBindShaderBuffer(fluid_velocity_v, 4);
+    run_compute_shader(project_compute_program_a,
+      fluid_velocity_up,
+      fluid_velocity_vp,
+      fluid_velocity_u,
+      fluid_velocity_v,
+      nullptr,
+      nullptr, 0, 1);
 
-    rlComputeShaderDispatch(N + 2, N + 2, 1);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    run_compute_shader(project_compute_program_b,
+      fluid_velocity_up,
+      fluid_velocity_vp,
+      fluid_velocity_u,
+      fluid_velocity_v,
+      nullptr,
+      nullptr, 0, 20);
 
-    rlEnableShader(project_compute_program_b);
-    rlBindShaderBuffer(fluid_velocity_up, 1);
-    rlBindShaderBuffer(fluid_velocity_vp, 2);
-    rlBindShaderBuffer(fluid_velocity_u, 3);
-    rlBindShaderBuffer(fluid_velocity_v, 4);
-
-    for (int i = 0; i < 20; i++) {
-      rlComputeShaderDispatch(N + 2, N + 2, 1);
-      glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-    }
-
-    rlEnableShader(project_compute_program_c);
-    rlBindShaderBuffer(fluid_velocity_up, 1);
-    rlBindShaderBuffer(fluid_velocity_vp, 2);
-    rlBindShaderBuffer(fluid_velocity_u, 3);
-    rlBindShaderBuffer(fluid_velocity_v, 4);
-
-    rlComputeShaderDispatch(N + 2, N + 2, 1);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    run_compute_shader(project_compute_program_c,
+      fluid_velocity_up,
+      fluid_velocity_vp,
+      fluid_velocity_u,
+      fluid_velocity_v,
+      nullptr,
+      nullptr, 0, 1);
 
     // Advect
 
-    rlEnableShader(advect_compute_program);
+    run_compute_shader(advect_compute_program,
+      fluid_velocity_up,
+      fluid_velocity_u,
+      fluid_velocity_up,
+      fluid_velocity_vp,
+      &dt,
+      &visc, 1, 1);
 
-    rlSetUniform(5, &dt, RL_SHADER_UNIFORM_FLOAT, 1);
-    rlSetUniform(6, &visc, RL_SHADER_UNIFORM_FLOAT, 1);
-    rlBindShaderBuffer(fluid_velocity_up, 1);
-    rlBindShaderBuffer(fluid_velocity_u, 2);
-    rlBindShaderBuffer(fluid_velocity_up, 3);
-    rlBindShaderBuffer(fluid_velocity_vp, 4);
-
-    rlComputeShaderDispatch(N + 2, N + 2, 1);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
-    rlEnableShader(advect_compute_program);
-
-    rlSetUniform(5, &dt, RL_SHADER_UNIFORM_FLOAT, 1);
-    rlSetUniform(6, &visc, RL_SHADER_UNIFORM_FLOAT, 1);
-    rlBindShaderBuffer(fluid_velocity_vp, 1);
-    rlBindShaderBuffer(fluid_velocity_v, 2);
-    rlBindShaderBuffer(fluid_velocity_up, 3);
-    rlBindShaderBuffer(fluid_velocity_vp, 4);
-
-    rlComputeShaderDispatch(N + 2, N + 2, 1);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    run_compute_shader(advect_compute_program,
+      fluid_velocity_vp,
+      fluid_velocity_v,
+      fluid_velocity_up,
+      fluid_velocity_vp,
+      &dt,
+      &visc, 2, 1);
 
     // Project
 
-    rlEnableShader(project_compute_program_a);
-    rlBindShaderBuffer(fluid_velocity_u, 1);
-    rlBindShaderBuffer(fluid_velocity_v, 2);
-    rlBindShaderBuffer(fluid_velocity_up, 3);
-    rlBindShaderBuffer(fluid_velocity_vp, 4);
+    run_compute_shader(project_compute_program_a,
+      fluid_velocity_u,
+      fluid_velocity_v,
+      fluid_velocity_up,
+      fluid_velocity_vp,
+      nullptr,
+      nullptr, 0, 1);
 
-    rlComputeShaderDispatch(N + 2, N + 2, 1);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    run_compute_shader(project_compute_program_b,
+      fluid_velocity_u,
+      fluid_velocity_v,
+      fluid_velocity_up,
+      fluid_velocity_vp,
+      nullptr,
+      nullptr, 0, 20);
 
-    rlEnableShader(project_compute_program_b);
-    rlBindShaderBuffer(fluid_velocity_u, 1);
-    rlBindShaderBuffer(fluid_velocity_v, 2);
-    rlBindShaderBuffer(fluid_velocity_up, 3);
-    rlBindShaderBuffer(fluid_velocity_vp, 4);
-
-    for (int i = 0; i < 20; i++) {
-      rlComputeShaderDispatch(N + 2, N + 2, 1);
-      glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-    }
-
-    rlEnableShader(project_compute_program_c);
-    rlBindShaderBuffer(fluid_velocity_up, 1);
-    rlBindShaderBuffer(fluid_velocity_vp, 2);
-    rlBindShaderBuffer(fluid_velocity_u, 3);
-    rlBindShaderBuffer(fluid_velocity_v, 4);
-
-    rlComputeShaderDispatch(N + 2, N + 2, 1);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    run_compute_shader(project_compute_program_c,
+      fluid_velocity_up,
+      fluid_velocity_vp,
+      fluid_velocity_u,
+      fluid_velocity_v,
+      nullptr,
+      nullptr, 0, 1);
 
     // Density Step
 
 
     // Add Source
 
-    rlEnableShader(add_compute_program);
-    rlSetUniform(3, &dt, RL_SHADER_UNIFORM_FLOAT, 1);
-    rlBindShaderBuffer(fluid_density_previous, 1);
-    rlBindShaderBuffer(fluid_density_current, 2);
-    rlComputeShaderDispatch(N + 2, N + 2, 1);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-    
+    run_compute_shader(add_compute_program,
+      fluid_density_previous,
+      fluid_density_current,
+      0,
+      0,
+      &dt,
+      nullptr, 0, 1);
 
     //Diffuse
 
-    rlEnableShader(diffuse_compute_program);
-    rlSetUniform(3, &dt, RL_SHADER_UNIFORM_FLOAT, 1);
-    rlSetUniform(4, &diff, RL_SHADER_UNIFORM_FLOAT, 1);
-    rlBindShaderBuffer(fluid_density_current, 1);
-    rlBindShaderBuffer(fluid_density_previous, 2);
-
-    for (int i = 0; i < 20; i++) {
-      rlComputeShaderDispatch(N + 2, N + 2, 1);
-      glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-    }
+    run_compute_shader(diffuse_compute_program,
+      fluid_density_current,
+      fluid_density_previous,
+      0,
+      0,
+      &dt,
+      &diff, 0, 20);
 
     // Advect
 
-    rlEnableShader(advect_compute_program);
-
-    rlSetUniform(5, &dt, RL_SHADER_UNIFORM_FLOAT, 1);
-    rlSetUniform(6, &diff, RL_SHADER_UNIFORM_FLOAT, 1);
-    rlBindShaderBuffer(fluid_density_previous, 1);
-    rlBindShaderBuffer(fluid_density_current, 2);
-    rlBindShaderBuffer(fluid_velocity_u, 3);
-    rlBindShaderBuffer(fluid_velocity_v, 4);
-
-    rlComputeShaderDispatch(N + 2, N + 2, 1);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    run_compute_shader(advect_compute_program,
+      fluid_density_previous,
+      fluid_density_current,
+      fluid_velocity_u,
+      fluid_velocity_v,
+      &dt,
+      &diff, 0, 1);
 
     BeginDrawing();
     ClearBackground(RAYWHITE);
     
     DrawTexturePro(compute_texture, { 0,0,N + 2,N + 2 }, { 0,0,(N + 2) * scale_factor, (N + 2) * scale_factor }, { 0,0 }, 0, RAYWHITE);
+
+    DrawText(TextFormat("FPS: %i", (int)(1.0f / dt)), 40, 40, 20, GREEN);
 
     EndDrawing();
   }

@@ -22,6 +22,8 @@ layout(std430, binding = 4) buffer vvel_layout {
 layout(location = 5) uniform float dt;
 layout(location = 6) uniform float diff;
 
+layout(rgba8, binding = 7) uniform image2D border_input;
+
 
 #define N 400
 #define IX(i,j) ((i)+(N+2)*(j))
@@ -55,6 +57,7 @@ float advect(vec4 value, ivec2 texel_coord, float diff, float dt) {
 void main() {
   vec4 value = vec4(0.0, 0.0, 0.0, 1.0);
   ivec2 texel_coord = ivec2(gl_GlobalInvocationID.xy);
+  texel_coord += ivec2(1);
   value.x = advect(value, texel_coord, diff, dt);
 }
 

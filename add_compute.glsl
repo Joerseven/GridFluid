@@ -11,7 +11,16 @@ layout(std430, binding = 2) buffer dest_layout {
   float dest_density[];
 };
 
-layout(location = 3) uniform float dt;
+layout(std430, binding = 3) buffer array_three {
+  float arr3[];
+};
+
+layout(std430, binding = 4) buffer array_four {
+  float arr4[];
+};
+
+layout(location = 5) uniform float dt;
+layout(location = 6) uniform float diff;
 
 
 #define N 400
@@ -28,11 +37,10 @@ void main() {
   vec4 value = vec4(0.0, 0.0, 0.0, 1.0);
 
   ivec2 texel_coord = ivec2(gl_GlobalInvocationID.xy);
+  texel_coord += ivec2(1);
 
   int arr_coord = IX(texel_coord.x, texel_coord.y);
   value.x = add_source(value, texel_coord, dt);
-
-  imageStore(img_output, texel_coord, value);
 }
 
 
