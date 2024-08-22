@@ -14,7 +14,7 @@ layout(std430, binding = 2) buffer dest_layout {
 layout(location = 3) uniform float dt;
 
 
-#define N 100
+#define N 400
 #define IX(i,j) ((i)+(N+2)*(j))
 
 float add_source(vec4 value, ivec2 texel_coord, float dt) {

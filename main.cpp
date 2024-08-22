@@ -8,9 +8,9 @@
 #include <array>
 #include <memory>
 
-constexpr int N = 100;
+constexpr int N = 400;
 constexpr int fl_array_size = (N + 2) * (N + 2);
-constexpr int scale_factor = 8;
+constexpr int scale_factor = 3;
 
 typedef std::unique_ptr<std::array<float, fl_array_size>> float_array_ptr;
 
@@ -151,7 +151,7 @@ void velocity_step(const float_array_ptr& u, const float_array_ptr& v, const flo
 void add_liquid_point(const float_array_ptr& dest, int x, int y, int radius) {
   for (int i = x - radius; i < x + radius; i++) {
     for (int j = y - radius; j < y + radius; j++) {
-      (*dest)[fl_index(i, j)] += 1000.0f;
+      (*dest)[fl_index(i, j)] += 100.0f;
     }
   }
 }
@@ -249,7 +249,7 @@ int main (int argc, char *argv[]) {
 
 
     if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
-      add_liquid_point(prev_density, 50, 50, 2);
+      add_liquid_point(prev_density, N/2, N/2, 2);
     }
 
     if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) {
@@ -264,7 +264,7 @@ int main (int argc, char *argv[]) {
       add_force(prev_vely, first_pressed.x / scale_factor, first_pressed.y / scale_factor, force.y);
     }
 
-    float diff = 0.001f;
+    float diff = 0.0001f;
     float visc = 0.0f;
     
     //velocity_step(velx, vely, prev_velx, prev_vely, 0, dt, diffuse_compute_program, fluid_sbo);

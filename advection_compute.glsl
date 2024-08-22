@@ -23,7 +23,7 @@ layout(location = 5) uniform float dt;
 layout(location = 6) uniform float diff;
 
 
-#define N 100
+#define N 400
 #define IX(i,j) ((i)+(N+2)*(j))
 
 float advect(vec4 value, ivec2 texel_coord, float diff, float dt) {

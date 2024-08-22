@@ -19,7 +19,7 @@ layout(std430, binding = 4) buffer vel_prev_u_layout {
   float div[];
 };
 
-#define N 100
+#define N 400
 #define IX(i,j) ((i)+(N+2)*(j))
 
 float project(vec4 value, ivec2 texel_coord) {
