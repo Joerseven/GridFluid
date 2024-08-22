@@ -23,7 +23,7 @@ layout(location = 5) uniform float dt;
 layout(location = 6) uniform float diff;
 
 
-#define N 400
+#define N 200
 #define IX(i,j) ((i)+(N+2)*(j))
 
 float add_source(vec4 value, ivec2 texel_coord, float dt) {

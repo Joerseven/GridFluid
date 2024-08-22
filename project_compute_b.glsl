@@ -22,7 +22,7 @@ layout(std430, binding = 4) buffer vel_prev_u_layout {
 layout(location = 5) uniform float dt;
 layout(location = 6) uniform float diff;
 
-#define N 400
+#define N 200
 #define IX(i,j) ((i)+(N+2)*(j))
 
 float project(vec4 value, ivec2 texel_coord) {

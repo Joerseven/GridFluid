@@ -38,27 +38,8 @@ layout(rgba8, binding = 7) uniform image2D border_input;
 //}
 
 
-#define N 400
+#define N 200
 #define IX(i,j) ((i)+(N+2)*(j))
-
-void border(ivec2 texel_coord) {
-
-  ivec2 d = texel_coord + ivec2(0, -1);
-  ivec2 u = texel_coord + ivec2(0, 1);
-  ivec2 l = texel_coord + ivec2(1, 0);
-  ivec2 r = texel_coord + ivec2(-1, 0);
-
-
-  float down = imageLoad(border_input, d).a;
-  float up = imageLoad(border_input, u).a;
-  float left = imageLoad(border_input, l).a;
-  float right = imageLoad(border_input, r).a;
-
-  if (down > 0.8) dest_density[IX(d.x, d.y)] = dest_density[IX(texel_coord.x, texel_coord.y)];
-  if (up > 0.8) dest_density[IX(u.x, u.y)] = dest_density[IX(texel_coord.x, texel_coord.y)];
-  if (left > 0.8) dest_density[IX(l.x, l.y)] = dest_density[IX(texel_coord.x, texel_coord.y)];
-  if (right > 0.8) dest_density[IX(r.x, r.y)] = dest_density[IX(texel_coord.x, texel_coord.y)];
-}
 
 float diffuse(vec4 value, ivec2 texel_coord, float diff, float dt) {
 
@@ -80,17 +61,13 @@ void main() {
 
   vec4 value = vec4(0.0, 0.0, 0.0, 1.0);
 
-  
-
   ivec2 texel_coord = ivec2(gl_GlobalInvocationID.xy);
 
   texel_coord += ivec2(1);
-  
 
   int arr_coord = IX(texel_coord.x, texel_coord.y);
 
   value.x = diffuse(value, texel_coord, diff, dt);
-  border(texel_coord);
 
   imageStore(img_output, texel_coord, value);
 }

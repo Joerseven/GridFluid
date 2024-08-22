@@ -25,7 +25,7 @@ layout(location = 6) uniform float diff;
 layout(rgba8, binding = 7) uniform image2D border_input;
 
 
-#define N 400
+#define N 200
 #define IX(i,j) ((i)+(N+2)*(j))
 
 float advect(vec4 value, ivec2 texel_coord, float diff, float dt) {
